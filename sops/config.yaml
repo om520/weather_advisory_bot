@@ -1,0 +1,119 @@
+# =============================================================================
+# config.yaml  --  SYSTEM BEHAVIOUR AS DATA (not policy content)
+#
+# Split of responsibilities:
+#   sops.yaml   = what advice to give, under which conditions
+#   config.yaml = how fields are computed, how conflicts resolve, badge labels,
+#                 fixed messages
+# An 11th SOP normally touches only sops.yaml. If it needs a weather value that
+# is not listed under weather_fields, add one entry here. Still no .py edits.
+# =============================================================================
+schema_version: 1
+
+severity_order: [info, advisory, caution, danger]   # lowest to highest
+
+# There is deliberately NO green "Safe" badge. "No rule fired" is not "safe".
+badges:
+  danger:      {label: "Not recommended", icon: "🔴"}
+  caution:     {label: "Take care",       icon: "🟠"}
+  advisory:    {label: "Heads up",        icon: "🟡"}
+  info:        {label: "Good to know",    icon: "🔵"}
+  no_guidance: {label: "No guidance",     icon: "⚪"}
+
+matching:
+  tag_sources: [activity, who]      # SOP applies_to is checked against both
+  # `applies_to: any` only fires when at least one real tag was recognised.
+  # Otherwise "how's the weather?" or an off-topic question would trigger
+  # RAIN-SYS-01. Unknown activity plus no "who" means out_of_scope.
+  any_requires_known_tag: true
+
+# Deterministic language handling. New SOP tags match their own words by default;
+# these aliases only add common paraphrases without changing Python control flow.
+intent:
+  activity_aliases:
+    cycling: [cycle, cyclist, bicycle, biking, bike ride, pedal, commute by bike, two-wheeler]
+    running: [run, jogging, jog, trail run]
+    hiking: [hike, trek, trekking, walk in the hills]
+    boating: [boat, sailing, sail, kayak, kayaking]
+    camping: [camp, campsite, tent]
+    picnic: [park, outdoor lunch, family outing]
+    outdoor_event: [outdoor event, festival, concert]
+  who_aliases:
+    children: [child, children, kid, kids, toddler, baby]
+    elderly: [elderly, senior, seniors, older adult]
+    pets: [pet, dog, dogs, puppy]
+  time_phrases:
+    now: [now, right now, next few hours]
+    this_evening: [this evening, tonight, evening]
+    tomorrow: [tomorrow, next day]
+    today: [today]
+  location_stop_words: [today, tomorrow, tonight, evening, now, this, next, for, with, because, if, and, but]
+
+# When several SOPs match one question.
+conflict_resolution:
+  lead_categories: [umbrella]                       # these always lead if matched
+  sort_by: [severity_desc, priority_desc, id_asc]   # then the rest, in this order
+  max_also_applies: 3
+  # Reply = primary SOP guidance only. Other matches are listed deterministically
+  # as "Also applies: <ID> <title>" (titles come from sops.yaml, not the model).
+
+default_time_ref: today   # the reply must state which time window was used
+
+forecast:
+  forecast_days: 2        # enough for today and tomorrow
+  timezone: auto          # so "this evening" and 11:00-16:00 use local time
+
+# Hours are local. "now" means the current local hour. Windows are clipped to
+# the forecast range.
+time_windows:
+  now:          {day_offset: 0, start_hour: now, end_hour: "now+3", label: "the next few hours"}
+  today:        {day_offset: 0, start_hour: 6,   end_hour: 20,      label: "today"}
+  this_evening: {day_offset: 0, start_hour: 17,  end_hour: 21,      label: "this evening"}
+  tomorrow:     {day_offset: 1, start_hour: 6,   end_hour: 20,      label: "tomorrow"}
+
+# Weather fields SOPs may reference. The fetcher builds the Open-Meteo
+# hourly/daily lists FROM THIS TABLE, so a new field is one new entry.
+#   source : hourly | daily
+#   agg    : max | min | mean | sum | list | count_gte(+threshold) | value (daily)
+#   hours  : whole_day            -> use 00-23 of the target day, not the window
+#   hours_intersect: [a, b]       -> window AND hours a..b; empty -> null (unknown)
+# UNVERIFIED: confirm each `variable` against a real API response (Phase 1).
+weather_fields:
+  temp_max_c:          {source: hourly, variable: temperature_2m,            agg: max,  unit: "°C",   label: "highest temperature"}
+  temp_min_c:          {source: hourly, variable: temperature_2m,            agg: min,  unit: "°C",   label: "lowest temperature"}
+  temp_mean_c:         {source: hourly, variable: temperature_2m,            agg: mean, unit: "°C",   label: "average temperature"}
+  apparent_temp_max_c: {source: hourly, variable: apparent_temperature,      agg: max,  unit: "°C",   label: "highest feels-like temperature"}
+  wind_speed_max_kmh:  {source: hourly, variable: wind_speed_10m,            agg: max,  unit: "km/h", label: "highest wind speed"}
+  wind_gust_max_kmh:   {source: hourly, variable: wind_gusts_10m,            agg: max,  unit: "km/h", label: "highest wind gusts"}
+  precip_prob_max_pct: {source: hourly, variable: precipitation_probability, agg: max,  unit: "%",    label: "highest rain probability"}
+  visibility_min_m:    {source: hourly, variable: visibility,                agg: min,  unit: "m",    label: "lowest visibility"}
+  uv_midday_max:       {source: hourly, variable: uv_index,                  agg: max,  unit: "",     label: "peak midday UV index", hours_intersect: [11, 16]}
+  weather_codes:       {source: hourly, variable: weather_code,              agg: list, unit: "",     label: "weather codes"}
+  precip_day_sum_mm:   {source: daily,  variable: precipitation_sum,         agg: value, unit: "mm",  label: "total rainfall for the day"}
+  rainy_hours_day:     {source: hourly, variable: precipitation,             agg: count_gte, threshold: 0.1, hours: whole_day, unit: "h", label: "hours with rain"}
+
+# Summary fields shown in the no-SOP reply (must be keys in weather_fields).
+summary_fields: [temp_max_c, temp_min_c, apparent_temp_max_c, wind_speed_max_kmh,
+                 wind_gust_max_kmh, precip_prob_max_pct, precip_day_sum_mm,
+                 uv_midday_max, visibility_min_m]
+
+# Fixed messages. These are deterministic and never generated by a model.
+# Placeholders: {activity} {location} {resolved_location} {time_window} {activity_examples} {weather_summary}
+# ({activity_examples} is filled from the first few keys of activity_tags.)
+templates:
+  clarify_location: "Which city or town should I check the weather for?"
+  clarify_activity: "What are you planning to do? For example: {activity_examples}."
+  location_unresolved: "I couldn't find a place called \"{location}\", so I can't check the weather there. Could you check the spelling or add the state or country?"
+  weather_unavailable: "I couldn't get a weather forecast just now, so I can't give weather-based guidance. I'd rather tell you that than guess. Please try again in a few minutes."
+  out_of_scope: "I don't have guidance for that, and I'd rather say so than guess. I can help with weather questions about outdoor activities such as {activity_examples}."
+  no_sop_triggered: "No weather hazard policy for {activity} was triggered for {resolved_location} ({time_window}). That is not an all-clear. This check covers weather only, not traffic, road works, road surface or air quality.\n\nValues checked\n{weather_summary}\nBased on No matching SOP · Forecast for {resolved_location} · {time_window}"
+
+# Rules the deterministic reply check enforces in code.
+validator:
+  # A number in the reply is allowed only if it is (a) a weather value fetched
+  # for THIS request, or (b) a number that appears in the cited SOP's own text
+  # or condition values (e.g. "11 am to 4 pm"). Anything else fails.
+  allowed_numbers: [fetched_weather_values, numbers_in_cited_sop_text]
+  rounding_decimals_allowed: [0, 1]   # 41.3 may be written 41 or 41.3
+  allowed_sop_ids: matched_only       # a cited ID must be in sops.yaml AND matched
+  on_failure: template_reply          # build the reply from SOP guidance text, no LLM

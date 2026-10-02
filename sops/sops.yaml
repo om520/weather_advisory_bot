@@ -1,0 +1,191 @@
+sops:
+  - id: "RAIN-SYS-01"
+    title: "Regional Rain System Alert"
+    category: "umbrella"
+    severity: "danger"
+    priority: 1
+    applies_to: "any"
+    conditions:
+      any:
+        - field: "precip_day_sum_mm"
+          op: ">="
+          value: 64.5
+        - field: "weather_codes"
+          op: "contains_any"
+          value: [61, 63, 65, 80, 81, 82, 95, 96, 99]
+    guidance: >
+      A significant rain system is active over the area.
+      Rain gear and waterproof footwear are required for any outdoor plans.
+
+  - id: "LIGHTNING-01"
+    title: "Thunderstorm & Lightning Danger"
+    category: "storm"
+    severity: "danger"
+    priority: 2
+    applies_to: "any"
+    conditions:
+      any:
+        - field: "weather_codes"
+          op: "contains_any"
+          value: [95, 96, 99]
+    guidance: >
+      Thunderstorm activity with lightning hazard detected.
+      Seek immediate indoor shelter; avoid open fields and tall structures.
+
+  - id: "GUST-SAIL-01"
+    title: "Severe Wind Gust Danger for Boating"
+    category: "boating"
+    severity: "danger"
+    priority: 3
+    applies_to: ["boating"]
+    conditions:
+      all:
+        - field: "wind_gust_max_kmh"
+          op: ">="
+          value: 45.0
+    guidance: >
+      Wind gusts reaching 45 km/h create dangerous water turbulence
+      and capsizing conditions. Boating is not recommended.
+
+  - id: "HEAT-EXER-01"
+    title: "Extreme Heat Risk for Exercise"
+    category: "heat"
+    severity: "caution"
+    priority: 4
+    applies_to: ["hiking", "running"]
+    conditions:
+      all:
+        - field: "apparent_temp_max_c"
+          op: ">="
+          value: 38.0
+    guidance: >
+      Move the exercise to early morning or late evening.
+      Heat peaks in the afternoon, and hard exercise in heat raises the risk
+      of heat illness.
+
+  - id: "WIND-CYCLE-01"
+    title: "High Wind Hazard for Cycling"
+    category: "wind"
+    severity: "caution"
+    priority: 5
+    applies_to: ["cycling"]
+    conditions:
+      all:
+        - field: "wind_speed_max_kmh"
+          op: ">="
+          value: 35.0
+    guidance: >
+      Wind speeds exceeding 35 km/h create severe stability hazards
+      for cycling. Avoid exposed or open roads.
+
+  - id: "COLD-OUTDOOR-01"
+    title: "Freezing Temperature Warning"
+    category: "cold"
+    severity: "advisory"
+    priority: 6
+    applies_to: ["running", "hiking", "camping"]
+    conditions:
+      all:
+        - field: "temp_min_c"
+          op: "<="
+          value: 0.0
+    guidance: >
+      Freezing temperatures expected. Thermal layered clothing is
+      recommended to avoid hypothermia during prolonged exposure.
+
+  - id: "SNOW-CAMP-01"
+    title: "Snowfall Alert for Camping & Hiking"
+    category: "snow"
+    severity: "caution"
+    priority: 7
+    applies_to: ["camping", "hiking"]
+    conditions:
+      any:
+        - field: "weather_codes"
+          op: "contains_any"
+          value: [71, 73, 75, 77, 85, 86]
+    guidance: >
+      Active snowfall or wintry precipitation detected.
+      Four-season insulated equipment is required.
+
+  - id: "FOG-VISIBILITY-01"
+    title: "Low Visibility Advisory"
+    category: "visibility"
+    severity: "advisory"
+    priority: 8
+    applies_to: ["cycling", "boating"]
+    conditions:
+      any:
+        - field: "weather_codes"
+          op: "contains_any"
+          value: [45, 48]
+        - field: "visibility_min_m"
+          op: "<="
+          value: 1000.0
+    guidance: >
+      Dense fog or low visibility below 1 km detected.
+      Use high-visibility lighting and reduce travel speed.
+
+  - id: "UV-EXPOSURE-01"
+    title: "High Midday UV Index"
+    category: "radiation"
+    severity: "advisory"
+    priority: 9
+    applies_to: "any"
+    conditions:
+      all:
+        - field: "uv_midday_max"
+          op: ">="
+          value: 6.0
+    guidance: >
+      Midday UV index reaches or exceeds 6. Apply SPF 30+ sunscreen
+      and wear protective eyewear during 11 am to 4 pm.
+
+  - id: "PICNIC-COMFORT-01"
+    title: "Outdoor Comfort Assessment"
+    category: "comfort"
+    severity: "advisory"
+    priority: 10
+    applies_to: ["picnic", "park", "outdoor_event"]
+    conditions:
+      any:
+        - field: "precip_prob_max_pct"
+          op: ">="
+          value: 30
+        - field: "temp_max_c"
+          op: ">="
+          value: 33.0
+    guidance: >
+      Weather conditions may reduce outdoor comfort for leisure activities.
+      Check rain probability and temperature before heading out.
+    fuzzy:
+      factor_guidance:
+        precip_prob_max_pct: "Bring rain cover or choose a covered venue."
+        temp_max_c: "Choose a cooler time of day and bring water."
+      bands:
+        - name: "poor"
+          severity: "caution"
+          conditions:
+            any:
+              - field: "precip_prob_max_pct"
+                op: ">="
+                value: 60
+              - field: "temp_max_c"
+                op: ">="
+                value: 38.0
+          guidance: >
+            Conditions are poor for a picnic due to high rain probability
+            or extreme heat. An indoor or covered venue is recommended.
+        - name: "marginal"
+          severity: "advisory"
+          conditions:
+            any:
+              - field: "precip_prob_max_pct"
+                op: ">="
+                value: 30
+              - field: "temp_max_c"
+                op: ">="
+                value: 33.0
+          guidance: >
+            Outdoor comfort is marginal. Bring rain cover or sun
+            protection as a precaution.
