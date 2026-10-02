@@ -46,6 +46,12 @@ The system structurally prevents LLM hallucinations (inventing facts or advice) 
 
 To add a light rain warning, an administrator simply appends a new rule to `sops.yaml`. The system guarantees that 100% of the advice provided is traceable directly to an approved written policy.
 
+### Multilingual & Informal Input Handling (e.g. Hinglish)
+The architecture seamlessly handles multilingual inputs, colloquialisms, and informal phrasing (e.g., *"safe hai kya cycle karna in Delhi?"*). 
+**How we take care of it:** 
+Because the LLM is positioned at the very front of the graph exclusively as a JSON intent extractor (`app/nodes/parse_intent.py`), it uses its native semantic understanding to translate the user's intent into standard English keys (e.g., `{"activity": "cycling", "location": "Delhi"}`). Once extracted, the strict deterministic Python engine takes over, completely isolating the language barrier from the safety logic and API calls.
+
+
 ### API Failures & Architectural Fixes (Rate Limits & Timeouts)
 **The Problem:**
 During our bulk evaluation (`evaluate_model.py`), sending 50 queries sequentially caused the external APIs (LLM provider and Open-Meteo) to hit hard rate limits (e.g., 4 Requests Per Minute). The LLM SDK automatically retried under the hood, causing connections to hang and eventually trigger HTTP Read Timeouts. 
