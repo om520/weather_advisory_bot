@@ -68,7 +68,7 @@ def _invoke_with_retry(messages: list[dict]):
 _PARSE_SYSTEM = """\
 You extract structured information from outdoor activity questions.
 Return ONLY valid JSON with exactly these keys:
-  activity : string  (one recognised tag, or "unknown")
+  activity : string  (one recognised tag (correct spelling if needed), or "unknown")
   location : string  (city/place name on Earth, or "" if missing, fictional, or in outer space)
   time_ref : string  (one of: now, today, this_evening, tomorrow, or "today")
   who      : string  (e.g. "children", "elderly", or "")
