@@ -17,7 +17,16 @@ def parse_intent_node(state: dict) -> dict:
     try:
         parsed = llm_parse_intent(state["user_message"], known_tags)
     except IntentParseError:
-        parsed = {"activity": "unknown", "location": "", "time_ref": "today", "who": ""}
+        return {
+            **state,
+            "activity": "unknown",
+            "location": "",
+            "time_ref": "today",
+            "who": "",
+            "known_tags": known_tags,
+            "follow_up_context": "",
+            "llm_failed": True,
+        }
 
     prior_activity = state.get("activity", "unknown")
     prior_location = state.get("location", "")

@@ -102,10 +102,23 @@ def ask_clarification_node(state: dict) -> dict:
 
 
 def honest_fallback_node(state: dict) -> dict:
-    """Used when geocode fails OR weather API fails."""
+    """Used when LLM fails, geocode fails, OR weather API fails."""
     cfg = state["config"]
     templates = cfg.get("templates", {})
-    if state.get("geo_failed"):
+    if state.get("llm_failed"):
+        msg = (
+            "⚠️ The language model API is not working right now. "
+            "This may be due to an invalid API key or the service being down. "
+            "Please try again later."
+        )
+        error = {
+            "code": "E-LLM-001",
+            "meaning": "Language model API failure",
+            "what_happened": "The Cerebras API could not process the request. "
+                             "The API key may be invalid or the service may be down.",
+            "what_to_do": "Check that CEREBRAS_API_KEY is set correctly and try again.",
+        }
+    elif state.get("geo_failed"):
         msg = templates.get("location_unresolved", "Could not find that location.")
         msg = msg.format(location=state.get("location", ""))
         error = None

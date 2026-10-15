@@ -62,6 +62,7 @@ class AgentState(TypedDict, total=False):
     weather_values: dict
     time_window_label: str
     weather_failed: bool
+    llm_failed: bool
     error: Optional[dict]
     # SOP matching
     matched_sops: list
@@ -80,6 +81,8 @@ class AgentState(TypedDict, total=False):
 # ── Branch conditions (all return a node name string) ─────────────────
 
 def _after_parse(state: AgentState) -> str:
+    if state.get("llm_failed"):
+        return "honest_fallback"
     missing_location = not state.get("location")
     missing_activity = (
         state.get("activity", "unknown") == "unknown"
@@ -142,6 +145,7 @@ def build_graph() -> StateGraph:
         "ask_clarification": "ask_clarification",
         "out_of_scope":      "out_of_scope",
         "geocode":           "geocode",
+        "honest_fallback":   "honest_fallback",
     })
     g.add_conditional_edges("geocode",        _after_geocode,  {
         "honest_fallback": "honest_fallback",
