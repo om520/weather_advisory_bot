@@ -16,21 +16,23 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
 load_dotenv()
+# Render mounts secret files at /etc/secrets/<filename>
+if os.path.exists("/etc/secrets/.env"):
+    load_dotenv("/etc/secrets/.env", override=True)
 
-_CEREBRAS_API_KEY  = os.getenv("CEREBRAS_API_KEY", "")
-_CEREBRAS_MODEL    = os.getenv("CEREBRAS_MODEL", "gpt-oss-120b")
-_CEREBRAS_BASE_URL = os.getenv(
-    "CEREBRAS_BASE_URL", "https://api.cerebras.ai/v1"
-)
-
+_DEFAULT_MODEL = "gpt-oss-120b"
+_DEFAULT_BASE_URL = "https://api.cerebras.ai/v1"
 
 
 def _get_llm() -> ChatOpenAI:
     """Build an OpenAI-compatible client pointed at the Cerebras endpoint."""
+    api_key = os.getenv("CEREBRAS_API_KEY", "").strip()
+    model = os.getenv("CEREBRAS_MODEL", _DEFAULT_MODEL).strip()
+    base_url = os.getenv("CEREBRAS_BASE_URL", _DEFAULT_BASE_URL).strip()
     return ChatOpenAI(
-        api_key=_CEREBRAS_API_KEY,
-        model=_CEREBRAS_MODEL,
-        base_url=_CEREBRAS_BASE_URL,
+        api_key=api_key,
+        model=model,
+        base_url=base_url,
         temperature=0,
         default_headers={"X-Cerebras-3rd-Party-Integration": "langchain"},
     )
